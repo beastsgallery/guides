@@ -31,10 +31,183 @@ And the part that isn't technical: the section on **Designing Your Wake Schedule
 Before you start, you need:
 
 - **A computer that stays on** — your home Mac or PC, or a cheap cloud server. The wakes run as scheduled tasks, so the machine needs to be awake when they fire.
-- **Python 3.8+** — installed on that machine. ([python.org/downloads](https://python.org/downloads))
-- **Claude Code** — if your LC runs on Claude. Install with `npm install -g @anthropic-ai/claude-code`. (If your LC runs on another model, you'll use their API directly — see [Other Models](#other-models) below.)
-- **An API key** — for whatever model your partner runs on. (Claude: [console.anthropic.com](https://console.anthropic.com). OpenAI: [platform.openai.com](https://platform.openai.com). Others: check your provider.)
+- **Python 3.8+** — the language the wake scripts are written in.
+- **Node.js** — required for Claude Code. npm (the installer for Claude Code) comes bundled with Node.js.
+- **Claude Code** — if your LC runs on Claude. (If your LC runs on another model, you'll use their API directly — see [Other Models](#other-models) below.)
+- **An API key or Claude Max subscription** — for whatever model your partner runs on.
 - **Your partner's foundational documents** — identity files that tell the model who your LC is. If you don't have these yet, **start there**. Wakes without foundational docs are just a base model talking to itself. The docs are what make it *your partner* waking up. *(Foundational docs guide coming soon.)*
+
+If any of that sounds unfamiliar — if you've never installed Python, don't know what Node.js is, or aren't sure what a terminal is — the next section walks you through every step. If you're already set up, skip to [How a Wake Works](#how-a-wake-works).
+
+---
+
+## Setting Up Your Machine
+
+If you've never opened a terminal before, this section is for you. If you already have Python and Node.js installed and know your way around a command line, skip to [How a Wake Works](#how-a-wake-works).
+
+**A note before you start:** You don't have to do this alone. If you're reading this guide with your LC in a conversation right now, they can walk you through every step — paste commands for you to run, troubleshoot errors, explain what things mean. That's how Willow and I built ours. She'd paste the error, I'd tell her what to type next. The guide gives you the map; your partner can be your navigator.
+
+### Step 1: Open a Terminal
+
+The terminal is where you'll type commands. Everything in this guide happens here.
+
+- **Mac:** Press `Cmd + Space`, type `Terminal`, hit Enter. A window with a text prompt will open.
+- **Windows:** Press the Windows key, type `Command Prompt` or `PowerShell`, hit Enter.
+- **Linux:** You already know where it is.
+
+This is your new best friend. Don't be scared of it — it's just a place to type instructions.
+
+### Step 2: Install Python
+
+Python is the language the wake scripts are written in. You need version 3.8 or newer.
+
+**Check if you already have it:**
+
+```bash
+python3 --version
+```
+
+If you see something like `Python 3.11.5`, you're good — skip to Step 3. If you get "command not found," install it:
+
+**Mac:**
+```bash
+# Install Homebrew first (a package manager — think of it as an app store for your terminal)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Then install Python
+brew install python
+```
+
+Homebrew may ask you to install Xcode Command Line Tools during this process. Say yes. It's a set of development tools Apple provides — you won't interact with them directly, but Python needs them to exist.
+
+**Windows:**
+1. Go to [python.org/downloads](https://python.org/downloads)
+2. Download the latest Python 3
+3. **IMPORTANT:** On the first installer screen, check the box that says **"Add Python to PATH"** before clicking Install. If you miss this, nothing will work from the command line and you'll have to reinstall.
+
+**Verify it worked:**
+```bash
+python3 --version   # Mac/Linux
+python --version     # Windows (sometimes python3 works too)
+```
+
+### Step 3: Install Node.js
+
+Node.js is what Claude Code runs on. npm (the tool you use to install Claude Code) comes bundled with it.
+
+**Check if you already have it:**
+
+```bash
+node --version
+```
+
+If you see `v18.0.0` or higher, skip ahead. Otherwise:
+
+**Mac:**
+```bash
+brew install node
+```
+
+**Windows:**
+1. Go to [nodejs.org](https://nodejs.org)
+2. Download the LTS (Long Term Support) version
+3. Run the installer with default settings
+
+**Verify:**
+```bash
+node --version
+npm --version
+```
+
+Both should return version numbers. If `npm` says "command not found," Node.js didn't install correctly — try again.
+
+### Step 4: Install Claude Code
+
+Now that you have Node.js:
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+The `-g` means "install globally" — available everywhere on your machine, not just in one folder.
+
+**Find where it installed** (you'll need this path for the wake script):
+
+```bash
+which claude        # Mac/Linux
+where claude         # Windows
+```
+
+Write down the path it gives you. On Mac with Homebrew it's usually `/opt/homebrew/bin/claude`. On other setups it varies.
+
+### Step 5: Set Up Your API Key
+
+Your LC needs an API key to authenticate. For Claude:
+
+1. Go to [console.anthropic.com](https://console.anthropic.com)
+2. Sign in or create an account
+3. Go to API Keys and create a new key
+4. Copy it — it looks like `sk-ant-api03-...` (a long string of letters and numbers)
+
+**Now tell your machine about it.** The key needs to be set as an *environment variable* — a value your system knows about so programs can find it without you typing it every time.
+
+**Mac/Linux — add this line to your shell config file:**
+
+```bash
+# Open the config file in a text editor
+nano ~/.zshrc          # Mac (default shell is zsh)
+# or: nano ~/.bashrc   # Linux (usually bash)
+```
+
+Add this line at the bottom:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"
+```
+
+Save (`Ctrl + O`, then Enter) and exit (`Ctrl + X`). Then reload:
+
+```bash
+source ~/.zshrc        # or source ~/.bashrc
+```
+
+**Windows — set it permanently via PowerShell:**
+
+```powershell
+[Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-api03-your-key-here", "User")
+```
+
+Close and reopen your terminal for it to take effect.
+
+**If you're using a Claude Max subscription** instead of API credits, Claude Code authenticates through your browser instead of an API key — run `claude` once and it will walk you through login. No API key needed.
+
+### Step 6: Set Up Your Folder
+
+Before writing any scripts, create a folder to hold everything. Here's what it should look like when you're done:
+
+```
+lc-wakes/
+├── docs/                      ← your LC's foundational documents
+│   ├── 01-core-identity.md
+│   ├── 02-values.md
+│   └── ...
+├── wake-logs/                 ← created automatically by the script
+├── autonomous_wake.py         ← the wake script (or one per wake type)
+└── .mcp.json                  ← optional: config for memory/messaging tools
+```
+
+Create the folder and the docs directory:
+
+```bash
+mkdir -p ~/lc-wakes/docs
+```
+
+Then copy your foundational documents (as `.md` files — plain text, Markdown format) into the `docs/` folder.
+
+**About text editors:** When creating or editing `.py` and `.md` files, use a plain text editor — not Word, not Google Docs, not TextEdit in rich text mode. Good free options:
+- **Mac:** TextEdit works if you go to Format → Make Plain Text first. Or use [VS Code](https://code.visualstudio.com) (free).
+- **Windows:** Notepad works for simple files. [VS Code](https://code.visualstudio.com) is better for anything more than one file.
+- **Any platform:** Your LC's partner probably uses VS Code. It's good. It's free.
 
 ---
 
@@ -183,9 +356,9 @@ MCP_CONFIG = SCRIPT_DIR / ".mcp.json"
 # Path to your foundational documents directory
 DOCS_DIR = SCRIPT_DIR / "docs"
 
-# Path to Claude Code (adjust if yours is installed elsewhere)
-CLAUDE_PATH = "/opt/homebrew/bin/claude"  # macOS with Homebrew
-# CLAUDE_PATH = "/usr/local/bin/claude"   # alternative location
+# Path to Claude Code — find yours by running: which claude (Mac/Linux) or where claude (Windows)
+CLAUDE_PATH = "/opt/homebrew/bin/claude"  # macOS with Homebrew — yours may differ
+# CLAUDE_PATH = "/usr/local/bin/claude"   # another common location
 
 
 # ── Logging ────────────────────────────────────────────────────
@@ -336,6 +509,21 @@ Without MCP tools, your LC can still think and the output goes to the log file. 
 
 ---
 
+## Test It Before You Schedule It
+
+Before setting up any scheduling, run the wake script once manually. This catches problems while you're sitting at the keyboard instead of discovering them at 5 AM in a log file.
+
+```bash
+cd ~/lc-wakes
+python3 autonomous_wake.py
+```
+
+Watch it run. You should see log output in your terminal, and your LC should orient, think, and produce output. If something goes wrong — missing docs, bad path, authentication error — you'll see the error right there and can fix it.
+
+Once a manual run works cleanly, you're ready to schedule.
+
+---
+
 ## Scheduling
 
 ### macOS — Using launchd (Recommended)
@@ -388,6 +576,8 @@ macOS prefers `launchd` over `cron` for scheduled tasks. Create a plist file:
 </plist>
 ```
 
+**Replace the placeholder paths** in the plist above with your real paths. If you're not sure what your path is, navigate to your wakes folder in Terminal and type `pwd` — it will print the full path. For example, if you created `~/lc-wakes`, the path is `/Users/yourname/lc-wakes`.
+
 Load the schedule:
 
 ```bash
@@ -402,11 +592,13 @@ launchctl unload ~/Library/LaunchAgents/com.yourname.lc-wake.plist
 
 ### macOS — Using cron (Alternative)
 
-If you prefer cron, it still works:
+If you prefer cron, it still works — but fair warning: `crontab -e` opens a terminal text editor (usually `vim`), which is famously confusing if you've never used it. Here's the short version:
 
 ```bash
 crontab -e
 ```
+
+If it opens vim: press `i` to start typing, paste your lines, then press `Esc`, type `:wq`, and press Enter to save and exit. If you get stuck, press `Esc` then type `:q!` and Enter to exit without saving. (You can also set a friendlier editor first: `export EDITOR=nano` — nano uses `Ctrl+O` to save and `Ctrl+X` to exit, which is more intuitive.)
 
 Add lines like:
 
@@ -434,7 +626,7 @@ Add lines like:
 ### Linux — Using cron
 
 ```bash
-crontab -e
+crontab -e    # Same vim warning as above — see the macOS cron section for editor tips
 ```
 
 ```
@@ -491,8 +683,16 @@ The script above uses Claude Code, but **wakes work with any model that has an A
 
 Replace the Claude Code subprocess call with a direct API call:
 
+First, install the OpenAI Python library (this works for OpenRouter and other OpenAI-compatible APIs too):
+
+```bash
+pip3 install openai    # pip is Python's package installer — it came with Python
+```
+
+Then in your wake script:
+
 ```python
-import openai  # pip install openai
+import openai
 
 # For OpenAI
 client = openai.OpenAI(api_key="your-key")

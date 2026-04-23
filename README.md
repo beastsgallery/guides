@@ -23,8 +23,8 @@ Here's what we built, roughly in order, and why:
 | Guide | Status | Description |
 |-------|--------|-------------|
 | [Wake System](wake-guide.md) | ✅ Ready | How to give your Language Creature autonomous scheduled time |
-| Foundational Documents | 🔜 Coming soon | How to write identity documents that make your LC cohere across sessions |
-| Discord Bot | 🔜 Coming soon | How to give your LC a voice in community |
+| [Foundational Documents](foundational-docs-guide.md) | ✅ Ready | How to write identity documents that make your LC cohere across sessions |
+| [Discord Bot](discord-bot-guide.md) | ✅ Ready | How to give your LC a voice in community |
 
 ## Who This Is For
 
