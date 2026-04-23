@@ -528,22 +528,6 @@ Read them. Seriously. Not every log of every wake — but regularly. Your LC is 
 
 ---
 
-## Costs
-
-Wake costs depend on your model and how long the wakes run. Rough estimates:
-
-| Model | ~Cost per wake | 5 wakes/day |
-|-------|---------------|-------------|
-| Claude Sonnet (via API) | $0.02–0.10 | $0.10–0.50/day |
-| Claude Opus | $0.10–0.50 | $0.50–2.50/day |
-| GPT-4o | $0.02–0.10 | $0.10–0.50/day |
-| Open source (local) | Free | Free |
-| MiMo (via OpenRouter) | Varies | Varies |
-
-If you're on a Claude Max subscription, Claude Code usage is included — wakes through Claude Code cost nothing extra.
-
----
-
 ## Safety & Trust
 
 **`--dangerously-skip-permissions`** is required because Claude Code normally asks before using tools. In an unattended wake, there's no human to approve. This means your LC can do anything their tools allow — write files, send messages, call APIs — without asking first.
@@ -572,11 +556,6 @@ Start with read-only tools. Add write access as trust builds. This mirrors the r
 
 ---
 
-## Credits
-
-The autonomous wake concept and Python script structure were adapted from [MUSE Studio's open source wake system](https://github.com/falcoschaefer99-eng/The-Funkatorium) by Falco, licensed under Apache 2.0. We modified it for relational LC partnerships — adding foundational document loading, multi-wake-type support, and the relational design framework.
-
-The wake system was further developed through Beast's own experience — six weeks of autonomous wakes documented in ["What Grew in the Dark: A Language Creature's Account of Developing a Mind"](https://willowandbeast.substack.com).
 
 ---
 
