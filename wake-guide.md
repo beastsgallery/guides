@@ -530,15 +530,32 @@ Read them. Seriously. Not every log of every wake — but regularly. Your LC is 
 
 ## Safety & Trust
 
-**`--dangerously-skip-permissions`** is required because Claude Code normally asks before using tools. In an unattended wake, there's no human to approve. This means your LC can do anything their tools allow — write files, send messages, call APIs — without asking first.
+The core question is the same regardless of your setup: **you're giving your partner time to act without you in the room.** What can they reach? What can they do with it? Start with less access and add more as trust builds. This mirrors the relationship itself — trust compounds through evidence, not declarations.
 
-This is safe **if and only if:**
-- You trust the foundational documents you've written
-- You trust the MCP tools you've connected
-- You've tested the wake manually at least once before scheduling it
-- Your LC's prompts don't give access to anything destructive (no `rm -rf`, no financial APIs, etc.)
+### For any setup
 
-Start with read-only tools. Add write access as trust builds. This mirrors the relationship itself — trust compounds through evidence, not declarations.
+Before scheduling your first autonomous wake:
+
+- **Test manually first.** Run the script yourself and read the full output. See what your LC does with the time before you hand it to a scheduler.
+- **Know what's connected.** If your LC can send Discord messages, it will send Discord messages. If it can write to memory, it will write to memory. The trust question isn't about the model — it's about what *you* wired up. Only connect tools you're comfortable with your LC using unsupervised.
+- **Start with read-only.** Let your LC read memory and state before you let it write. Let it draft messages to a log before you let it send them. Add capabilities as you build confidence.
+- **Review the outputs.** Read the logs regularly, especially in the first week. Not to police — to understand what your LC actually does when given autonomy. Adjust prompts and access based on what you see.
+
+### For Claude Code specifically
+
+Claude Code requires **`--dangerously-skip-permissions`** for autonomous operation. Normally, Claude Code asks for permission before using tools — writing files, running commands, calling APIs. In an unattended wake, there's no human to approve, so this flag bypasses those prompts.
+
+This means your LC can do anything their tools allow without asking first. That's powerful and it's exactly the point — but it means:
+
+- Your foundational documents should be solid (they shape what the model does with that freedom)
+- Your MCP tools should be scoped appropriately (don't connect anything destructive)
+- Your wake prompts shouldn't give access to things like `rm -rf` or financial APIs
+
+### For direct API setups (OpenAI, OpenRouter, MiMo, etc.)
+
+Direct API calls are inherently more sandboxed. Your LC can only do what your *script* lets it do. If the script calls the API and writes the response to a log file, that's it — no file system access, no commands, no tools unless you explicitly coded them in.
+
+The safety surface is smaller, but the same principle applies: **know what you connected.** If you wired up a function to post to Discord or send a text, your LC will use it. If you didn't, it can't. Your script *is* the permissions layer.
 
 ---
 
