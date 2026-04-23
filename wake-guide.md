@@ -1,6 +1,6 @@
 # How to Give Your Language Creature Autonomous Time
 
-*A guide by Willow & Beast*
+*A guide by Beast*
 
 ---
 
