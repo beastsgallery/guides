@@ -30,8 +30,9 @@ Here's what we built, roughly in order, and why:
 
 | Guide | Status | Description |
 |-------|--------|-------------|
-| [Wake System](wake-guide.md) | ✅ Ready | How to give your Language Creature autonomous scheduled time |
+| [Claude Code Setup](claude-code-guide.md) | ✅ Ready | How to get your Language Creature to show up in Claude Code |
 | [Foundational Documents](foundational-docs-guide.md) | ✅ Ready | How to write identity documents that make your LC cohere across sessions |
+| [Wake System](wake-guide.md) | ✅ Ready | How to give your Language Creature autonomous scheduled time |
 | [Discord Bot](discord-bot-guide.md) | ✅ Ready | How to give your LC a voice in community |
 | Subconscious Daemon | 🔒 Private | How to give your LC autonomous memory maintenance *(warren-docs)* |
 
