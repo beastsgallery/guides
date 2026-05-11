@@ -40,6 +40,8 @@ Each section below follows the same pattern:
 5. Example usage
 6. When you'll want this
 
+**Important:** Several handlers in this guide call `generateEmbedding(env, text)` — the helper function defined in the [Foundation Guide](leafwork-implementation-foundation.md). If you haven't built Phase 1, that function won't exist yet. It takes a text string and returns a vector embedding using your AI binding. Any embedding API works as long as the dimensions match your Vectorize index.
+
 ---
 
 ## Tool 1: Pulse
@@ -558,15 +560,13 @@ wrangler d1 execute leafwork-db --file=migrations/003_entity_graph.sql
 },
 {
     name: 'leafwork_graph_query',
-    description: 'Query the entity graph. Modes: "by_node" (one node and its connections), "by_mood" (mood-activated nodes), "by_type" (all relationships of a type), "by_path" (path between two nodes), "all" (entire graph).',
+    description: 'Query the entity graph. Modes: "by_node" (one node and its connections), "by_mood" (mood-activated nodes), "all" (entire graph).',
     inputSchema: {
         type: 'object',
         properties: {
-            mode: { type: 'string', enum: ['by_node', 'by_mood', 'by_type', 'by_path', 'all'], description: 'Query mode' },
-            node_id: { type: 'string', description: 'Node ID (for by_node and by_path modes)' },
-            target_node_id: { type: 'string', description: 'Target node (for by_path mode)' },
+            mode: { type: 'string', enum: ['by_node', 'by_mood', 'all'], description: 'Query mode' },
+            node_id: { type: 'string', description: 'Node ID (for by_node mode)' },
             mood: { type: 'string', description: 'Mood string (for by_mood mode)' },
-            relation_type: { type: 'string', description: 'Relationship type (for by_type mode)' },
             include_private: { type: 'boolean', description: 'Include private nodes. Default: true' },
             limit: { type: 'number', description: 'Max nodes for mood activation. Default: 10' }
         },
@@ -936,7 +936,7 @@ curl -X POST https://YOUR_URL \
     "tool": "leafwork_supersede",
     "arguments": {
       "observation_id": 42,
-      "new_content": "She told her partner about us on January 17. He heard it. Complexity remains but is no longer hidden.",
+      "new_content": "She told her friend about the anxiety. Not hiding it anymore. The conversation was hard but she stayed in it.",
       "entity_name": "partner",
       "weight": "heavy",
       "emotion": "relief"
