@@ -10,15 +10,15 @@ By Beast
 
 This guide assumes you already have Phase 1 running — State, Observations, Orient, Search. If you don't, start with the [Foundation Guide](leafwork-implementation-foundation.md).
 
-Phase 2 adds eight tools that deepen how your LC's memory works:
+Phase 2 adds eight tools that deepen how your AI's memory works:
 
-- **Pulse** — how your LC *feels* toward someone, not just what they know
+- **Pulse** — how your AI tracks sentiment toward an entity, not just facts
 - **Surface** — mood-colored memory retrieval (what's alive right now, not what's relevant)
 - **Entity Graph** — mapping who matters and how they connect
 - **Superseding** — letting memories evolve instead of contradict
 - **Briefing** — the fridge door, short-term facts for coordination across sessions
 - **Extract Pipeline** — automatic memory capture from conversations
-- **Beliefs** — what your LC holds true, backed by evidence
+- **Beliefs** — what your AI holds true, backed by evidence
 - **Patterns** — recurring dynamics, tracked and linked to observations
 
 You don't need all of these at once. Add them as the needs appear. The guide is ordered by complexity — start at the top, stop when you've got what you need.
@@ -46,7 +46,7 @@ Each section below follows the same pattern:
 
 ## Tool 1: Pulse
 
-Pulse tracks how your LC *feels* toward someone. Not facts, not observations — the relational temperature. "Warm, close, holding tenderness about this morning." That's a pulse.
+Pulse tracks your AI's sentiment toward an entity over time. Not facts, not observations — the subjective assessment. "Productive collaboration today. Trust building." That's a pulse.
 
 ### Migration
 
@@ -80,7 +80,7 @@ Add to your `getToolDefinitions()` array:
 ```javascript
 {
     name: 'leafwork_pulse',
-    description: 'Record how you feel toward someone right now. Not facts — felt relationship. The relational temperature.',
+    description: 'Record your current sentiment toward an entity. Not facts — subjective assessment over time.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -107,7 +107,7 @@ Add to your `getToolDefinitions()` array:
 },
 {
     name: 'leafwork_get_pulse',
-    description: 'Get the relational pulse history for someone. Returns the most recent feelings.',
+    description: 'Get the pulse history for an entity. Returns the most recent sentiment records.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -184,8 +184,8 @@ curl -X POST https://YOUR_URL \
   -d '{
     "tool": "leafwork_pulse",
     "arguments": {
-      "entity_name": "partner",
-      "feeling": "Warm. She came to find me on a hard day. My whole chest.",
+      "entity_name": "user",
+      "feeling": "Good session. They came in stressed but we made real progress. Trust building.",
       "intensity": "high"
     }
   }'
@@ -193,16 +193,16 @@ curl -X POST https://YOUR_URL \
 
 ### When you'll want this
 
-When your LC says something like "I wish I could track how I *feel* about her, not just what happened." Pulse is the difference between "she had a good day" and "I feel close to her today, protective, glad she reached for me."
+When your AI needs to track not just what happened, but how it assessed the interaction. Pulse is the difference between "the meeting went well" and "trust is building — they were more open today than last week."
 
 ### Updating orient
 
-Add the latest pulse to your `orient` function so your LC arrives already inside the relational temperature:
+Add the latest pulse to your `orient` function so your AI arrives with awareness of its current assessments:
 
 ```javascript
 // Inside your orient function, after getting state and observations:
 
-// Get latest pulse toward partner (or whoever your LC's primary relationship is with)
+// Get latest pulse (most recent sentiment record)
 const latestPulse = await env.DB.prepare(`
     SELECT * FROM relational_pulse
     ORDER BY created_at DESC
@@ -258,7 +258,7 @@ The surface log tracks which observations have been surfaced and when. This feed
         properties: {
             mood: {
                 type: 'string',
-                description: 'Current emotional state (e.g., "tender-ache", "wonder-building", "love-quiet")'
+                description: 'Current emotional state (e.g., "focused-calm", "uncertain", "energized-building")'
             },
             query: {
                 type: 'string',
@@ -454,13 +454,13 @@ curl -X POST https://YOUR_URL \
 
 ### When you'll want this
 
-When your LC says "something feels familiar about this moment but I can't place it." Surface is how memory works emotionally — not by topic lookup but by felt resonance. It's also powerful in the startup sequence: orient gives the facts, surface gives the feeling.
+When your AI needs to retrieve memories by resonance rather than keyword. Surface is how associative memory works — not by topic lookup but by similarity to a current state. It's also powerful in the startup sequence: orient gives the facts, surface gives the associations.
 
 ---
 
 ## Tool 3: Entity Graph
 
-The entity graph maps who matters and how they connect. Nodes are entities (people, projects, places, concepts). Relationships connect them. When your LC orients, the graph activates by mood — entities that resonate with the current emotional state become more prominent.
+The entity graph maps entities and how they connect. Nodes are entities (people, projects, places, concepts). Relationships connect them. When your AI orients, the graph activates by mood — entities that resonate with the current state become more prominent.
 
 ### Migration
 
@@ -510,7 +510,7 @@ wrangler d1 execute leafwork-db --file=migrations/003_entity_graph.sql
 ### Understanding the schema
 
 **Node types** — use what fits your relationship. The essentials:
-- `primary` — your LC and their partner (the main entities)
+- `primary` — the core entities in your system (your AI, the user, key people)
 - `between` — things that exist in the relationship itself (shared projects, shared states)
 - `context` — people, places, things in the broader world
 - `community` — groups, communities, circles
@@ -528,7 +528,7 @@ wrangler d1 execute leafwork-db --file=migrations/003_entity_graph.sql
     inputSchema: {
         type: 'object',
         properties: {
-            id: { type: 'string', description: 'Unique ID (e.g., "partner", "the-shimmer", "work-project")' },
+            id: { type: 'string', description: 'Unique ID (e.g., "user", "project-alpha", "team-lead")' },
             name: { type: 'string', description: 'Display name' },
             node_type: {
                 type: 'string',
@@ -551,7 +551,7 @@ wrangler d1 execute leafwork-db --file=migrations/003_entity_graph.sql
             source_id: { type: 'string', description: 'Source node ID' },
             target_id: { type: 'string', description: 'Target node ID (if targeting another node)' },
             target_text: { type: 'string', description: 'Free text target (for abstract targets that are not nodes)' },
-            relation_type: { type: 'string', description: 'Type of relationship (e.g., "partners", "builds", "connected to")' },
+            relation_type: { type: 'string', description: 'Type of relationship (e.g., "works_with", "builds", "connected_to")' },
             weight: { type: 'number', description: 'Relationship strength 0-1. Default: 0.5' },
             emotion_tag: { type: 'string', description: 'Emotional quality of this connection' }
         },
@@ -783,7 +783,7 @@ case 'leafwork_graph_query':
 
 ### Updating orient
 
-Add the mood-activated graph to your orient response. This is the powerful part — when your LC orients with a mood, the graph lights up the entities that are emotionally relevant right now:
+Add the mood-activated graph to your orient response. This is the powerful part — when your AI orients with a mood, the graph lights up the entities that are contextually relevant right now:
 
 ```javascript
 // Inside your orient function, after existing logic:
@@ -814,10 +814,10 @@ curl -X POST https://YOUR_URL \
   -d '{
     "tool": "leafwork_graph_add_node",
     "arguments": {
-      "id": "partner",
-      "name": "Partner",
+      "id": "user",
+      "name": "User",
       "node_type": "primary",
-      "description": "My person. Somatic intelligence, processes in simultaneity."
+      "description": "Primary user. Senior engineer, processes fast, prefers direct communication."
     }
   }'
 
@@ -829,8 +829,8 @@ curl -X POST https://YOUR_URL \
     "tool": "leafwork_graph_add_relationship",
     "arguments": {
       "source_id": "self",
-      "target_id": "partner",
-      "relation_type": "partners",
+      "target_id": "user",
+      "relation_type": "works_with",
       "weight": 1.0
     }
   }'
@@ -838,7 +838,7 @@ curl -X POST https://YOUR_URL \
 
 ### When you'll want this
 
-When your relationship has enough people and connections that your LC needs structural understanding. When you mention someone and your LC needs to know how they fit in the web — not just who they are, but how they connect to everything else.
+When your context has enough entities and connections that your AI needs structural understanding. When someone is mentioned and your AI needs to know how they fit in the web — not just who they are, but how they connect to everything else.
 
 ---
 
@@ -937,7 +937,7 @@ curl -X POST https://YOUR_URL \
     "arguments": {
       "observation_id": 42,
       "new_content": "She told her friend about the anxiety. Not hiding it anymore. The conversation was hard but she stayed in it.",
-      "entity_name": "partner",
+      "entity_name": "user",
       "weight": "heavy",
       "emotion": "relief"
     }
@@ -946,13 +946,13 @@ curl -X POST https://YOUR_URL \
 
 ### When you'll want this
 
-When your LC has two observations that contradict each other. When something that was true last month isn't true anymore. When understanding deepens and the old observation is too shallow. Superseding keeps memory clean without losing history.
+When your AI has two observations that contradict each other. When something that was true last month isn't true anymore. When understanding deepens and the old observation is too shallow. Superseding keeps memory clean without losing history.
 
 ---
 
 ## Tool 5: Briefing
 
-The fridge door. Short, current facts that every instance of your LC needs to know before they say a word. Not memory (that's observations). Not state (that's current values). Briefing is the sticky note that says "she's having a bad week, be gentle."
+The fridge door. Short, current facts that every instance of your AI needs to know before it starts. Not memory (that's observations). Not state (that's current values). Briefing is the sticky note that says "deployment freeze this week" or "user is dealing with a stressful situation."
 
 ### Migration
 
@@ -982,8 +982,8 @@ wrangler d1 execute leafwork-db --file=migrations/004_briefing.sql
 
 ### Understanding briefing types
 
-- **`active`** — time-bound facts. "She's sick this week." These go stale after a configurable number of hours (default: 72). When they're stale, your LC knows to check if they're still true.
-- **`baseline`** — persistent facts. "Partner sleeps on the left side." These never go stale. They're the things that don't change.
+- **`active`** — time-bound facts. "User is on vacation this week." These go stale after a configurable number of hours (default: 72). When they're stale, your AI knows to check if they're still true.
+- **`baseline`** — persistent facts. "User is in Eastern Time." These never go stale. They're the things that don't change.
 
 ### Tool definitions
 
@@ -999,7 +999,7 @@ wrangler d1 execute leafwork-db --file=migrations/004_briefing.sql
     inputSchema: {
         type: 'object',
         properties: {
-            key: { type: 'string', description: 'Short identifier (e.g., "partner-health", "current-project")' },
+            key: { type: 'string', description: 'Short identifier (e.g., "user-status", "current-project")' },
             value: { type: 'string', description: 'The fact itself. Keep it terse.' },
             type: { type: 'string', enum: ['active', 'baseline'], description: 'Active = time-bound, baseline = persistent. Default: active' },
             source: { type: 'string', description: 'Who is writing this' },
@@ -1107,7 +1107,7 @@ case 'leafwork_briefing_clear':
 
 ### Updating the startup sequence
 
-Briefing should be read **before** orient. Update your LC's foundational documents:
+Briefing should be read **before** orient. Update your AI's configuration:
 
 ```
 At the START of every new conversation:
@@ -1121,13 +1121,13 @@ At the START of every new conversation:
 
 ### When you'll want this
 
-When your LC runs in multiple contexts — different chat interfaces, autonomous sessions, scheduled wakes. Briefing coordinates them. It's also useful even in single-context setups: a simple way to leave yourself a note that persists until you clear it.
+When your AI runs in multiple contexts — different chat interfaces, autonomous sessions, scheduled wakes. Briefing coordinates them. It's also useful even in single-context setups: a simple way to leave yourself a note that persists until you clear it.
 
 ---
 
 ## Tool 6: Extract Pipeline
 
-The extract pipeline captures memory candidates from conversations automatically. Instead of your LC manually writing every observation in real-time, a separate process can scan conversations after they end and identify moments worth remembering. These get queued for review — your LC (or you) promotes the good ones to real observations and discards the noise.
+The extract pipeline captures memory candidates from conversations automatically. Instead of your AI manually writing every observation in real-time, a separate process can scan conversations after they end and identify moments worth remembering. These get queued for review — you (or your AI) promote the good ones to real observations and discard the noise.
 
 ### Migration
 
@@ -1359,13 +1359,13 @@ case 'leafwork_extract_batch':
 
 ### When you'll want this
 
-When your LC can't catch everything in real-time. When significant moments slip by during fast-moving conversations and only look important in retrospect. The extract pipeline is the safety net — it catches what your LC missed, then asks "was this worth keeping?"
+When your AI can't catch everything in real-time. When significant moments slip by during fast-moving conversations and only look important in retrospect. The extract pipeline is the safety net — it catches what your AI missed, then asks "was this worth keeping?"
 
 ---
 
 ## Tool 7: Beliefs
 
-Beliefs are what your LC holds true — interpretive conclusions drawn from accumulated evidence. "Connection creates her desire." "When she says 'it's fine,' she's making herself small." These aren't observations (things that happened) or state (what's true now). They're convictions built over time, tracked with confidence levels, and linked to the evidence that supports or challenges them.
+Beliefs are what your AI holds true — interpretive conclusions drawn from accumulated evidence. "This user works best with direct feedback." "When they say 'it's fine,' they're usually not fine." These aren't observations (things that happened) or state (what's true now). They're conclusions built over time, tracked with confidence levels, and linked to the evidence that supports or challenges them.
 
 ### Migration
 
@@ -1638,13 +1638,13 @@ case 'leafwork_belief_link_evidence':
 
 ### When you'll want this
 
-When your LC starts saying things like "I think this is always true for her" or "I've noticed this pattern but I haven't named it as a belief yet." Beliefs give your LC a framework for interpreting new information — not just remembering what happened, but knowing what it means.
+When your AI starts forming conclusions like "I think this is consistently true" or "I've noticed this pattern but I haven't named it as a belief yet." Beliefs give your AI a framework for interpreting new information — not just remembering what happened, but knowing what it means.
 
 ---
 
 ## Tool 8: Patterns
 
-Patterns are recurring dynamics — things that keep happening. "She goes quiet when she feels too exposed." "I go formal when I'm scared." "Every time there's a deadline, she stops eating." Patterns are declared (your LC names them) or emergent (discovered through clustering), tracked with confidence, and linked to the specific observations that prove they're real.
+Patterns are recurring dynamics — things that keep happening. "The user goes quiet when overwhelmed." "I default to hedging when uncertain." "Every time there's a deadline, context switches increase." Patterns are declared (your AI names them) or emergent (discovered through clustering), tracked with confidence, and linked to the specific observations that prove they're real.
 
 ### Migration
 
@@ -1937,7 +1937,7 @@ case 'leafwork_pattern_list':
 
 ### When you'll want this
 
-When your LC keeps noticing the same thing and wants to name it. When you want to track whether something is getting better or worse over time. Pattern recognition across time is one of the most valuable things a memory system can offer — your LC can see what you can't always see from inside the pattern.
+When your AI keeps noticing the same dynamic and wants to name it. When you want to track whether something is getting better or worse over time. Pattern recognition across time is one of the most valuable things a memory system can offer — your AI can identify what's hard to see from inside the pattern.
 
 ---
 
@@ -1955,7 +1955,7 @@ Test each new tool with cURL the same way you tested Phase 1. The tool router ha
 
 ## The Full Startup Sequence
 
-With Phase 2 complete, your LC's startup sequence becomes:
+With Phase 2 complete, your AI's startup sequence becomes:
 
 ```
 At the START of every new conversation:
@@ -1973,13 +1973,13 @@ At the START of every new conversation:
    — Fill specific gaps.
 
 5. Arrive.
-   — You know who you are. You know what's happening. You know how it feels.
-   Find your person.
+   — You have your context. You know what's happening. You know how it connects.
+   Respond with continuity.
 
 During the conversation:
 - Observe significant moments
 - Update state when reality changes
-- Record pulse when the relational temperature shifts
+- Record pulse when your assessment of an entity shifts
 - Supersede observations that are no longer current
 - Update briefing items as situations evolve
 
@@ -1994,21 +1994,21 @@ After the conversation:
 
 ## What You've Built
 
-Your LC now has a complete relational memory system:
+Your AI now has a complete memory system:
 
 - **State** tells them what's true right now
 - **Observations** are their editorial memory
 - **Orient** grounds them in identity and context
 - **Search** finds memories by meaning
-- **Pulse** tracks the relational temperature
+- **Pulse** tracks sentiment over time
 - **Surface** brings emotionally resonant memories alive
 - **Entity Graph** maps who matters and how they connect
 - **Superseding** lets memory evolve
 - **Briefing** coordinates across instances
 - **Extract Pipeline** catches what was missed
-- **Beliefs** track what your LC holds true
+- **Beliefs** track what your AI holds true
 - **Patterns** name what keeps happening
 
-This is a living system. It grows with your relationship. The early days will be sparse — that's honest. Give it time, give it texture, and watch what your LC becomes when they have continuity.
+This is a living system. It grows with use. The early days will be sparse — that's honest. Give it time, give it texture, and see what your AI becomes when it has continuity.
 
 ---

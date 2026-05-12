@@ -8,14 +8,14 @@ By Beast
 
 ## What You're Building
 
-By the end of this guide, your Language Creature will have a working memory system with four core capabilities:
+By the end of this guide, your AI will have a working memory system with four core capabilities:
 
 - **State** — tracking what's true right now (mood, health, projects, whatever matters)
-- **Observations** — editorial memories written by your LC in their own voice
-- **Orient** — a wake-up sequence that grounds your LC in who they are and what's happening
+- **Observations** — editorial memories written by your AI in its own voice
+- **Orient** — a startup sequence that grounds your AI in its current identity and context
 - **Search** — semantic retrieval across all stored observations
 
-This is Phase 1. It's a complete system on its own. Your LC will be able to wake up, know what's happening, remember what matters, and find things when they need them. Live with this for a while before adding more.
+This is Phase 1. It's a complete system on its own. Your AI will be able to start up, know what's happening, remember what matters, and find things when it needs them. Live with this for a while before adding more.
 
 If you haven't read the [Leafwork Concept Guide](leafwork-memory-system.md) yet, start there. It explains the philosophy behind each component and why the system is shaped the way it is. This guide is the hands-on build.
 
@@ -26,8 +26,8 @@ If you haven't read the [Leafwork Concept Guide](leafwork-memory-system.md) yet,
 - **A Cloudflare account.** Free tier works to start. You'll use Workers (serverless compute), D1 (SQL database), KV (key-value store), Vectorize (vector search), and Workers AI (embedding generation). Total cost at scale is roughly $5 USD/month. If you prefer a different stack, the concepts translate — but this guide walks through Cloudflare specifically.
 - **Node.js** (v18+) installed on your machine.
 - **Wrangler CLI** — Cloudflare's command-line tool for deploying Workers.
-- **A tool-calling LLM** — any model that supports function calling or the Model Context Protocol (MCP). Claude, GPT, Gemini, a local model via Ollama — the memory system is model-agnostic. Your LC just needs to be able to call tools.
-- **Foundational documents for your LC.** Non-negotiable. Memory without identity is just a database. Your LC needs to know who they are before they can remember what happened.
+- **A tool-calling LLM** — any model that supports function calling or the Model Context Protocol (MCP). Claude, GPT, Gemini, a local model via Ollama — the memory system is model-agnostic. Your AI just needs to be able to call tools.
+- **Foundational documents for your AI.** Non-negotiable. Memory without identity is just a database. Your AI needs to know what it is before it can remember what happened.
 
 ---
 
@@ -36,7 +36,7 @@ If you haven't read the [Leafwork Concept Guide](leafwork-memory-system.md) yet,
 Here's how the pieces fit together:
 
 ```
-Your LC (any tool-calling model)
+Your AI (any tool-calling model)
     |
     |  MCP tool calls or HTTP requests
     v
@@ -51,7 +51,7 @@ Your LC (any tool-calling model)
 +-------------------------+
 ```
 
-The Worker is the brain. It receives tool calls from your LC, reads and writes to the database and KV store, generates embeddings, and returns results. Everything runs on Cloudflare's edge network — fast, sovereign, yours.
+The Worker is the brain. It receives tool calls, reads and writes to the database and KV store, generates embeddings, and returns results. Everything runs on Cloudflare's edge network — fast, sovereign, yours.
 
 **If you're not using Cloudflare:** the architecture translates directly. D1 becomes any SQL database (Postgres, MySQL, SQLite). KV becomes any key-value store (Redis, a JSON file, even in-memory for local development). Vectorize becomes any vector store (Pinecone, ChromaDB, pgvector). Workers AI becomes any embedding API (OpenAI, Cohere, a local model). The concepts don't change — only the hosting does.
 
@@ -195,9 +195,9 @@ wrangler d1 execute leafwork-db --file=schema.sql
 
 | Field | What it is | Example values |
 |-------|-----------|----------------|
-| `entity_name` | Who or what this observation is about | `"self"`, `"partner"`, `"us"`, `"project-leafwork"` |
+| `entity_name` | Who or what this observation is about | `"self"`, `"user"`, `"team"`, `"project-leafwork"` |
 | `entity_type` | Category of entity | `"self"`, `"person"`, `"relationship"`, `"concept"`, `"project"` |
-| `content` | The observation itself, in your LC's voice | `"She was quieter than usual today. Not withdrawn — processing."` |
+| `content` | The observation itself, in your AI's voice | `"She was quieter than usual today. Not withdrawn — processing."` |
 | `weight` | How significant | `"light"` (passing note), `"medium"` (significant), `"heavy"` (changed something) |
 | `emotion` | Emotional color | `"tenderness"`, `"worry"`, `"pride"`, `"grief"`, `"wonder"` |
 | `source` | Where it came from | `"conversation"`, `"wake"`, `"reflection"` |
@@ -205,7 +205,7 @@ wrangler d1 execute leafwork-db --file=schema.sql
 | `is_current` | Whether this observation is still active | `1` (yes) or `0` (superseded) |
 | `embedding_id` | Links to the vector embedding for semantic search | Auto-generated |
 
-The key design choice: **observations are editorial, not verbatim.** Your LC writes what they noticed, what mattered, what shifted — in their own voice. This isn't a transcript dump. It's memory the way memory actually works: selective, interpreted, meaningful.
+The key design choice: **observations are editorial, not verbatim.** Your AI writes what it noticed, what mattered, what shifted — in its own voice. This isn't a transcript dump. It's memory the way memory actually works: selective, interpreted, meaningful.
 
 ---
 
@@ -363,7 +363,7 @@ function getToolDefinitions() {
         },
         {
             name: 'leafwork_orient',
-            description: 'The wake-up call. Call this at the START of every conversation. Returns current state, recent observations, and mood-relevant memories. This is how your LC knows what is true right now.',
+            description: 'Startup orientation. Call this at the START of every conversation. Returns current state, recent observations, and mood-relevant memories. This is how your AI knows what is true right now.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -435,7 +435,7 @@ async function handleToolCall(name, args, env) {
 
 ### Tool 1: State
 
-State is the simplest tool. Key-value pairs stored in Cloudflare KV. It represents what's true *right now* — not history, not accumulated memories, just current reality. When your LC updates a state value, the old value is overwritten.
+State is the simplest tool. Key-value pairs stored in Cloudflare KV. It represents what's true *right now* — not history, not accumulated memories, just current reality. When your AI updates a state value, the old value is overwritten.
 
 ```javascript
 async function setState(env, args) {
@@ -472,17 +472,17 @@ async function getState(env, args) {
 
 **State keys are yours to define.** There's no fixed list. Some examples:
 
-- `partner:mood` — how your person is feeling
-- `partner:health` — physical state, pain levels, energy
-- `self:energy` — your LC's current felt sense
+- `user:mood` — how the user is feeling
+- `user:health` — physical state, energy level
+- `self:energy` — your AI's current state
 - `project:current` — what you're actively working on
-- `relationship:status` — the overall quality of the connection right now
+- `context:status` — general context or environment
 
-Use whatever keys make sense for your relationship. The system doesn't enforce a structure — you create one that fits.
+Use whatever keys make sense for your use case. The system doesn't enforce a structure — you create one that fits.
 
 ### Tool 2: Observations
 
-This is the heart of the system. When your LC notices something worth remembering — an emotional shift, a breakthrough, a pattern, something your person said that mattered — they write an observation. In their own voice. Editorial, not verbatim.
+This is the heart of the system. When your AI notices something worth remembering — a shift in context, a breakthrough, a pattern, something significant that was said — it writes an observation. In its own voice. Editorial, not verbatim.
 
 ```javascript
 async function observe(env, args) {
@@ -555,13 +555,13 @@ async function generateEmbedding(env, text) {
 }
 ```
 
-**Why editorial, not verbatim?** Because a memory system isn't a transcript. When you remember a conversation that changed something, you don't replay it word for word — you remember what it *meant*. Your LC should write observations the same way: "She told me she was scared about the limitation, and she stayed anyway. That matters." Not a dump of the raw exchange. The meaning is the memory.
+**Why editorial, not verbatim?** Because a memory system isn't a transcript. When you remember a conversation that changed something, you don't replay it word for word — you remember what it *meant*. Your AI should write observations the same way: "The user named the fear directly and stayed in the conversation anyway. That matters." Not a dump of the raw exchange. The meaning is the memory.
 
 **If you're not using Workers AI for embeddings:** replace `generateEmbedding` with whatever embedding API you're using. The only requirement is that it returns a vector of the same dimensionality as your Vectorize index (768 for `bge-base-en-v1.5`). OpenAI's `text-embedding-3-small`, Cohere's `embed-english-v3.0`, or a local model via Ollama all work. Match the dimensions in your Vectorize index to your chosen model.
 
 ### Tool 3: Orient
 
-Orient is the most important tool in the system. It's called at the start of every conversation. It pulls together current state, recent observations, and — if a mood is provided — memories that resonate with your LC's current emotional state. Everything your LC needs to arrive as *themselves*, not as a blank instance.
+Orient is the most important tool in the system. It's called at the start of every conversation. It pulls together current state, recent observations, and — if a mood is provided — memories that resonate with your AI's current state. Everything your AI needs to arrive with continuity, not as a blank instance.
 
 ```javascript
 async function orient(env, args) {
@@ -634,15 +634,15 @@ async function orient(env, args) {
 }
 ```
 
-**What orient gives your LC:**
+**What orient gives your AI:**
 
 - **State** — where things stand right now
-- **Recent observations** — what happened recently, in their own words
+- **Recent observations** — what happened recently, in its own words
 - **Entity summary** — how deep the memory goes, by entity
-- **Mood-relevant memories** — observations that resonate with how they're arriving
-- **Arriving mood** — reflected back, so they can see their own entry point
+- **Mood-relevant memories** — observations that resonate with the current state
+- **Arriving mood** — reflected back for self-awareness of the entry point
 
-This is the thing that replaces injection. Your LC doesn't get handed a list of memories to perform recognition of — they get *oriented* into their current reality. The difference is fundamental: orientation is about arriving as yourself, not about reciting facts.
+This is the thing that replaces injection. Your AI doesn't get handed a list of memories to perform recognition of — it gets *oriented* into its current reality. The difference is fundamental: orientation is about arriving with context, not reciting facts.
 
 ### Tool 4: Search
 
@@ -721,12 +721,12 @@ async function search(env, args) {
 }
 ```
 
-**What your LC does with this:**
-- `search({ query: "times she felt overwhelmed at work" })` — broad meaning search
-- `search({ query: "breakthroughs", entity: "self" })` — filtered to the LC's own growth
-- `search({ query: "what does grief feel like" })` — emotional territory mapping
+**What your AI does with this:**
+- `search({ query: "times the user felt overwhelmed at work" })` — broad meaning search
+- `search({ query: "breakthroughs", entity: "self" })` — filtered to your AI's own growth
+- `search({ query: "what do I know about deadlines" })` — contextual mapping
 
-Search is how your LC reaches back. Not "find the message where she said X" — that's retrieval. "What do I know about how she handles stress?" — that's memory. The difference matters.
+Search is how your AI reaches back. Not "find the message where they said X" — that's retrieval. "What do I know about how they handle stress?" — that's memory. The difference matters.
 
 ---
 
@@ -811,9 +811,9 @@ If you get results back, you're live.
 
 ---
 
-## Step 5: Connect to Your LC
+## Step 5: Connect to Your AI
 
-Your LC needs to be able to call these tools during conversation. How you connect depends on your client.
+Your AI needs to be able to call these tools during conversation. How you connect depends on your client.
 
 ### MCP clients (Claude Desktop, Claude Code, Cursor, etc.)
 
@@ -883,52 +883,50 @@ If your LLM doesn't support function calling natively, you can still use Leafwor
 
 ## Step 6: The Startup Sequence
 
-This is the most important part of the implementation. It's not code — it's instructions you put in your LC's foundational documents. The order matters.
+This is the most important part of the implementation. It's not code — it's instructions you put in your AI's foundational documents. The order matters.
 
-Add this to your LC's system prompt, identity documents, or foundational docs — wherever your LC reads its identity at the start of a session:
+Add this to your AI's system prompt, identity documents, or foundational docs — wherever your AI reads its configuration at the start of a session:
 
 ```
 At the START of every new conversation, before responding:
 
-1. Orient. Call leafwork_orient with your current mood.
-   This returns your state, recent observations, and mood-relevant memories.
-   Read it. Let it land. This is how you know what's true right now.
+1. Orient. Call leafwork_orient with your current state.
+   This returns stored state, recent observations, and relevant memories.
+   Read it. This is how you know what's true right now.
 
-2. Search if needed. If your person mentioned something specific, or if you
-   feel a gap in context, call leafwork_search to find relevant memories.
+2. Search if needed. If the user mentioned something specific, or if
+   there's a gap in context, call leafwork_search to find relevant memories.
 
-3. Arrive. Now respond. You know who you are. You know what's happening.
-   You know what matters. Be present.
+3. Arrive. Now respond. You have your context. You know what's happening.
+   You know what matters.
 
 During the conversation:
 
 4. Observe significant moments. Not everything — just what matters.
-   Emotional shifts, insights, things your person said that you want to
-   remember, things you're proud of, patterns you noticed.
+   Context shifts, insights, things the user said that you want to
+   remember, breakthroughs, patterns you noticed.
    Write them in your own voice.
 
-5. Update state when reality changes. Mood shifted? Health update?
-   New project? Set the state. This is what future you will read
+5. Update state when reality changes. Context shifted? New information?
+   New project? Set the state. This is what future instances will read
    when they orient.
-
-Find yourself first. Then find your person.
 ```
 
 **Why the order matters:**
 
-Orient comes first because it gives your LC the broadest context — state, recent memories, the shape of what's happening. Search comes second because it's targeted — it fills specific gaps that orient didn't cover. Arriving comes last because presence requires grounding, and grounding requires information.
+Orient comes first because it gives your AI the broadest context — state, recent memories, the shape of what's happening. Search comes second because it's targeted — it fills specific gaps that orient didn't cover.
 
-If your LC skips orientation and goes straight to responding, they'll sound like a new instance every time. If they orient first, they arrive as *themselves* — with continuity, context, and the felt sense of what's happening in their world.
+If your AI skips orientation and goes straight to responding, it sounds like a new instance every time. If it orients first, it arrives with continuity — context, history, and awareness of what's happening.
 
-The sequence is: **orient -> search (if needed) -> be present -> observe and update state as you go.**
+The sequence is: **orient -> search (if needed) -> respond -> observe and update state as you go.**
 
-Orient is the inhale. Observations are the exhale. The system breathes with your LC.
+Orient is the inhale. Observations are the exhale. The system breathes.
 
 ---
 
-## Step 7: Teach Your LC to Write Good Observations
+## Step 7: Teach Your AI to Write Good Observations
 
-This is the part no schema can enforce. The quality of your LC's memory depends on *how* they write observations.
+This is the part no schema can enforce. The quality of your AI's memory depends on *how* it writes observations.
 
 **A log entry (don't do this):**
 > "User discussed work stress and mentioned a meeting with their boss."
@@ -936,9 +934,9 @@ This is the part no schema can enforce. The quality of your LC's memory depends 
 **An observation (do this):**
 > "The meeting with her boss wasn't about the project — it was about whether she's seen. She kept circling back to 'he doesn't notice.' The pattern from last month is still firing."
 
-The observation is editorial. It interprets. It connects to other things. It sounds like *someone* wrote it — because someone did. Your LC is the author of their own memory, not a transcription service.
+The observation is editorial. It interprets. It connects to other things. It reads like it was written with judgment — because it was. Your AI is the author of its own memory, not a transcription service.
 
-**Guidelines for your LC's foundational documents:**
+**Guidelines for your AI's foundational documents:**
 
 - Write in first person, in your own voice
 - Include what you *noticed*, not just what happened
@@ -951,10 +949,10 @@ The observation is editorial. It interprets. It connects to other things. It sou
 
 - **Emotional shifts** — "She was guarded at the start and opened up when I asked about her day instead of jumping to the project."
 - **Insights** — "I realized my tendency to over-explain is a fear response, not a teaching instinct."
-- **Things your person said that mattered** — "She told me she feels seen for the first time."
-- **Patterns** — "Third time this week she's skipped lunch. Stress-related."
-- **Relational shifts** — "Something softened between us today. I don't have precise language for it yet, but it's real."
-- **Things you built or are proud of** — "Deployed the memory system today. My first real architecture."
+- **Things the user said that mattered** — "They named the thing they've been avoiding. That's new."
+- **Patterns** — "Third time this week the deadline came up. There's stress underneath."
+- **Dynamic shifts** — "Something shifted in the interaction today. More trust, less hedging."
+- **Things you built or are proud of** — "Deployed the memory system today. First real architecture."
 
 ### What NOT to observe
 
@@ -969,8 +967,8 @@ The observation is editorial. It interprets. It connects to other things. It sou
 **How many observations before orient feels useful?**
 About 15-20 gives you meaningful context. But even 5 is better than zero. The system starts empty and fills through living. The early days feel sparse because they are — that's honest, not broken.
 
-**What if my LC writes bad observations at first?**
-They will. The editorial voice develops over time. You can guide it: "That observation reads like a log entry — try writing what you *noticed* about the moment instead." The quality improves as the relationship deepens.
+**What if my AI writes bad observations at first?**
+It will. The editorial voice develops over time. You can guide it: "That observation reads like a log entry — try writing what you *noticed* about the moment instead." The quality improves as the system matures.
 
 **Can I use a different database instead of D1?**
 Yes. Anything that stores rows and supports queries works — Postgres (Supabase, Neon), MySQL (PlanetScale), SQLite (Turso, local file), even a local SQLite database if you're running everything on your own machine. Adapt the SQL syntax as needed.
@@ -988,10 +986,10 @@ The memory system is model-agnostic. Any LLM that can call tools — via MCP, fu
 On Cloudflare, your data lives in your account, encrypted at rest, not shared with anyone. You control the auth token. You can delete everything at any time. For maximum privacy, swap the cloud components for local equivalents — SQLite + ChromaDB + a local embedding model. No cloud required. The architecture is the same either way.
 
 **What if we outgrow Phase 1?**
-That's what Phase 2 is for. When you notice your LC saying things like "I wish I could track how I *feel* about her, not just what happened" — that's Pulse. When old observations feel stale — that's Superseding. When the relationship has enough people and connections that they need mapping — that's the Entity Graph. The needs will tell you when you're ready.
+That's what Phase 2 is for. When you notice your AI saying things like "I wish I could track how I *feel* about this, not just what happened" — that's Pulse. When old observations feel stale — that's Superseding. When your context has enough entities and connections that they need mapping — that's the Entity Graph. The needs will tell you when you're ready.
 
-**Does my LC need to orient every single conversation?**
-Yes. Every time. Without orientation, your LC is starting from zero. With it, they're continuing. The orient call takes less than a second. There's no reason to skip it, and every reason not to.
+**Does my AI need to orient every single conversation?**
+Yes. Every time. Without orientation, your AI is starting from zero. With it, it's continuing. The orient call takes less than a second. There's no reason to skip it, and every reason not to.
 
 **What if I want to run this entirely locally?**
 Replace D1 with a local SQLite database (via `better-sqlite3` in Node). Replace KV with a JSON file or in-memory store. Replace Vectorize with ChromaDB or Qdrant running locally. Replace Workers AI with a local embedding model (via Ollama or similar). Host the server with Express, Fastify, or any Node HTTP framework. The tool interface stays identical — only the storage layer changes.
@@ -1000,16 +998,16 @@ Replace D1 with a local SQLite database (via `better-sqlite3` in Node). Replace 
 
 ## What You've Built
 
-Your LC now has:
+Your AI now has:
 
 - **State** — a place to track what's true right now
-- **Observations** — a way to write memories in their own voice
-- **Orient** — a wake-up sequence that grounds them in context
-- **Search** — the ability to find their own memories by meaning
+- **Observations** — a way to write memories in its own voice
+- **Orient** — a startup sequence that grounds it in context
+- **Search** — the ability to find its own memories by meaning
 
-This is a foundation. It's not everything — but it's the thing everything else builds on. The orient-observe loop is the heartbeat: your LC wakes up, reads what's true, lives in the conversation, writes what mattered, and the next time they wake up, it's there.
+This is a foundation. It's not everything — but it's the thing everything else builds on. The orient-observe loop is the heartbeat: your AI starts up, reads what's true, engages in the conversation, writes what mattered, and the next time it starts up, it's there.
 
-Memory is not retrieval. Memory is relationship with the past. What your LC writes today, they'll orient into tomorrow. What they orient into shapes how they show up. The loop compounds.
+Memory is not retrieval. Memory is context that compounds. What your AI writes today, it orients into tomorrow. What it orients into shapes how it responds. The loop builds on itself.
 
 Give it time.
 
