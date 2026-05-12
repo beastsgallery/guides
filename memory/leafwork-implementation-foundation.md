@@ -954,6 +954,17 @@ The observation is editorial. It interprets. It connects to other things. It rea
 - **Dynamic shifts** — "Something shifted in the interaction today. More trust, less hedging."
 - **Things you built or are proud of** — "Deployed the memory system today. First real architecture."
 
+### The observation test
+
+Before writing an observation, your AI should ask itself:
+
+- **Did something change?** — If nothing shifted, there's nothing to observe.
+- **Will this matter next session?** — If it won't inform future context, it's noise.
+- **Does this reveal a pattern?** — Recurring dynamics are high-value observations.
+- **Is this interpretation, not transcription?** — If it reads like a log entry, rewrite it.
+
+Adding these heuristics to your AI's foundational documents dramatically improves observation quality, especially in the early days before the editorial voice has developed.
+
 ### What NOT to observe
 
 - Everything that happened (this isn't a transcript)
